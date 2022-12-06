@@ -1,11 +1,9 @@
-from pandera import DataFrameSchema
 from airflow.models import BaseOperator
 
 
-class DataFrameSchemaOperator(BaseOperator):
+class DFSchemaOperator(BaseOperator):
     def __init__(
         self,
-        dataframe=None,
         columns=None,
         checks=None,
         index=None,
@@ -22,7 +20,6 @@ class DataFrameSchemaOperator(BaseOperator):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.dataframe = dataframe
         self.columns = columns
         self.checks = checks
         self.index = index
@@ -38,6 +35,28 @@ class DataFrameSchemaOperator(BaseOperator):
         self.description = description
 
     def execute(self):
-        schema = DataFrameSchema()
-        validated_df = schema(self.dataframe)
-        return validated_df
+        ...
+
+
+class DFSchemaFromDFOperator(BaseOperator):
+    def __init__(self):
+        ...
+
+    def execute(self):
+        ...
+
+
+class DFSchemaFromCSVOperator(BaseOperator):
+    def __init__(self):
+        ...
+
+    def execute(self):
+        ...
+
+
+class DFSchemaFromSQLOperator(BaseOperator):
+    def __init__(self):
+        ...
+
+    def execute(self):
+        ...
