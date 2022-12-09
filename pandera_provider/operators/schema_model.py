@@ -2,13 +2,13 @@ from typing import Any, Dict
 
 from airflow.models import BaseOperator
 from pandas import DataFrame
-from pandera import DataFrameSchema
+from pandera import SchemaModel
 
 
-class DataFrameSchemaOperator(BaseOperator):
+class SchemaModelOperator(BaseOperator):
     """
-    Provides an operator for running validations in the data using the
-    DataFrameSchema.
+    Provides an operator for running validations on the data using the
+    SchemaModel.
 
     Methods
     ------
@@ -17,24 +17,20 @@ class DataFrameSchemaOperator(BaseOperator):
     """
 
     def __init__(
-        self,
-        dataframe: DataFrame,
-        columns: dict,
-        *args,
-        **kwargs,
+        self, dataframe: DataFrame, schema_model: SchemaModel, *args, **kwargs
     ) -> None:
         """
         Parameters
         ----------
         dataframe: DataFrame
             A dataframe object
-        columns: dict
-            A dictionary containing the mapping between columns and types.
+        schema_model: SchemaModel
+            A SchemaModel object containing the mapping for the columns in the
+            dataframe.
         """
-        super().__init__(*args, **kwargs)
+        super.__init__(*args, **kwargs)
         self.dataframe = dataframe
-        self.columns = columns
-        self.__dict__.update(kwargs)
+        self.schema_model = schema_model
 
     def execute(self, context: Dict[str, Any] = {}) -> Any:
         """
@@ -45,6 +41,5 @@ class DataFrameSchemaOperator(BaseOperator):
         context: dict
             Context provided by Airflow.
         """
-        schema = DataFrameSchema(columns=self.columns)
-        results = schema.validate(self.dataframe)
+        results = self.schema_model.validate(self.dataframe)
         return results

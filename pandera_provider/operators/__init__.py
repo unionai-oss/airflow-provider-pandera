@@ -1,13 +1,3 @@
-from .dataframeschema import (
-    DFSchemaFromCSVOperator,
-    DFSchemaFromDFOperator,
-    DFSchemaFromSQLOperator,
-    DFSchemaOperator,
-)
+from pandera_provider.operators.dataframeschema import DataFrameSchemaOperator
 
-__all__ = [
-    "DFSchemaFromCSVOperator",
-    "DFSchemaFromDFOperator",
-    "DFSchemaFromSQLOperator",
-    "DFSchemaOperator",
-]
+__all__ = ["DataFrameSchemaOperator"]
