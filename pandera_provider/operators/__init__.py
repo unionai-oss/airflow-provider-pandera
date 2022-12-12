@@ -1,3 +1,3 @@
-from pandera_provider.operators.dataframeschema import DataFrameSchemaOperator
+from pandera_provider.operators.pandera import PanderaOperator
 
-__all__ = ["DataFrameSchemaOperator"]
+__all__ = ["PanderaOperator"]
