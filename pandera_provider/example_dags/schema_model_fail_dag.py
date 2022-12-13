@@ -3,7 +3,7 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.operators.python import PythonOperator
 from pandas import DataFrame
-from pandera import SchemaModel
+from pandera import Column, SchemaModel
 from pandera.typing import Series
 
 from pandera_provider.operators import PanderaOperator

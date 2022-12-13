@@ -1,6 +1,7 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from airflow.models import BaseOperator
+from pandas import DataFrame
 from pandera import DataFrameSchema, SchemaModel
 
 
@@ -22,15 +23,15 @@ class PanderaOperator(BaseOperator):
     `enable_xcom_pickling = True`
 
     Methods
-    ------
+    -------
     execute(context={})
         Executes the operator.
     """
 
     def __init__(
         self,
-        columns: dict = None,
-        schema_model: SchemaModel = None,
+        columns: Optional[Dict[str, Any]] = None,
+        schema_model: Optional[SchemaModel] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -44,37 +45,46 @@ class PanderaOperator(BaseOperator):
             A schema model object to validate the dataframe.
         """
         super().__init__(*args, **kwargs)
-        self.columns = columns
-        self.schema_model = schema_model
-        self.__dict__.update(kwargs)
+        self.columns: Optional[Dict[str, Any]] = columns
+        self.schema_model: Optional[SchemaModel] = schema_model
 
-        if not self.columns and not self.schema_model:
-            raise ValueError(
-                "Need to provide columns or schema_model parameters to the operator"
+        if bool(self.columns) and not isinstance(self.columns, Dict):
+            raise TypeError(
+                f"Expected `self.columns` to be of type `dict` but got {type(self.columns)} instead"
             )
 
-        if self.columns and self.schema_model:
-            raise ValueError(
-                "Both columns and schema_model parameters were set. Can only have one."
-            )
+        # If columns is specified, but it's an empty dictionary, raises ValueError.
 
-    def execute(self, context: Dict[str, Any] = {}) -> Any:
+        if not (bool(self.columns) ^ bool(self.schema_model)):
+            raise ValueError("Exactly one of columns or schema_model may be specified.")
+
+    def execute(self, context: Dict[str, Any]) -> Any:
         """
         Runs the operator.
 
         Parameters
-        ---------
+        ----------
         context: dict
             Context provided by Airflow.
         """
-        df = context["ti"].xcom_pull(key="dfs_operator_df")
+        dataframe = context["ti"].xcom_pull(key="dfs_operator_df")
+        import pdb
 
-        if self.columns:
-            schema = DataFrameSchema(columns=self.columns)
-            results = schema.validate(df)
-            return results
+        pdb.set_trace()
+        if isinstance(dataframe, DataFrame):
 
-        if self.schema_model:
-            schema = self.schema_model
-            results = schema.validate(df)
+            schema = (
+                DataFrameSchema(columns=self.columns)
+                if self.columns
+                else self.schema_model
+                if self.schema_model
+                else None
+            )
+
+            if self.columns:
+                schema = DataFrameSchema(columns=self.columns)
+            elif self.schema_model:
+                schema = self.schema_model
+
+            results = schema.validate(dataframe)
             return results
