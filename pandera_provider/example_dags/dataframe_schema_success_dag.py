@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from pandas import DataFrame
 from pandera import Column
 
-from pandera_provider.operators import PanderaOperator
+from pandera_provider.operators.pandera import PanderaOperator
 
 
 def generate_dataframe(*args, **kwargs):

@@ -68,9 +68,14 @@ class PanderaOperator(BaseOperator):
             Context provided by Airflow.
         """
         dataframe = context["ti"].xcom_pull(key="dfs_operator_df")
-        import pdb
 
-        pdb.set_trace()
+        try:
+            if not bool(dataframe):
+                raise ValueError("Couldn't find an XCom with key `dfs_operator_df`")
+        except (AttributeError, ValueError):
+            if dataframe.empty:
+                raise ValueError("Got an empty dataframe in XCom `df_operator_df`.")
+
         if isinstance(dataframe, DataFrame):
 
             schema = (

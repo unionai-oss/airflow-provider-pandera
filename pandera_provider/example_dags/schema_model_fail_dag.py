@@ -6,7 +6,7 @@ from pandas import DataFrame
 from pandera import Column, SchemaModel
 from pandera.typing import Series
 
-from pandera_provider.operators import PanderaOperator
+from pandera_provider.operators.pandera import PanderaOperator
 
 
 class InputSchema(SchemaModel):
