@@ -1,15 +1,20 @@
-name: CI Tests
+name: tests
 on:
   push:
-    - '**'
+    branches:
+      - '**'
 
 jobs:
   run-tests:
+    name: Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4.3.1
-      - run: pip install .
-      - run: pip install -r requirements.txt
-      - run: make test
+      - name: Installing projects
+        run: pip install .
+      - name: Installing dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run tests
+        run: make test
 
