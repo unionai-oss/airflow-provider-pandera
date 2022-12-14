@@ -15,18 +15,19 @@ from tests.fixtures import (
 
 
 class TestPanderaOperatorDataFrameSchema:
+    DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
+    DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=2)
+
     def test_pandera_operator_using_dataframeschema_success(
         self,
         dataframeschema_success_dag,
     ):
-        DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
-        DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=1)
 
         dagrun = dataframeschema_success_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=DATA_INTERVAL_START,
-            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
-            start_date=DATA_INTERVAL_END,
+            execution_date=self.DATA_INTERVAL_START,
+            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
+            start_date=self.DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
@@ -42,14 +43,12 @@ class TestPanderaOperatorDataFrameSchema:
     def test_pandera_operator_using_dataframeschema_fail(
         self, dataframeschema_fail_dag
     ):
-        DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
-        DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=1)
 
         dagrun = dataframeschema_fail_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=DATA_INTERVAL_START,
-            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
-            start_date=DATA_INTERVAL_END,
+            execution_date=self.DATA_INTERVAL_START,
+            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
+            start_date=self.DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
