@@ -1,6 +1,6 @@
 """Setup.py for the pandera provider package."""
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -17,7 +17,7 @@ setup(
         ]
     },
     license="Apache License 2.0",
-    packages=["pandera_provider.operators"],
+    packages=find_packages(exclude=["tests*"]),
     install_requires=[
         "apache-airflow>=2.0",
         "pandera>=0.13.4",
