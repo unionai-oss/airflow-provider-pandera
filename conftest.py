@@ -9,8 +9,8 @@ from pandera.typing import Series
 from pandera_provider.operators.pandera import PanderaOperator
 
 
-@pytest.fixture(name="dataframe")
-def fixture_dataframe():
+@pytest.fixture
+def dataframe():
     return DataFrame(
         {
             "column1": ["pandera", "is", "awesome"],
@@ -20,8 +20,8 @@ def fixture_dataframe():
     )
 
 
-@pytest.fixture(name="dataframeschema_success_dag")
-def fixture_dataframeschema_success_dag(dataframe):
+@pytest.fixture
+def dataframeschema_success_dag(dataframe):
     @dag(
         dag_id="dataframe_schema_success_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
@@ -52,8 +52,8 @@ def fixture_dataframeschema_success_dag(dataframe):
     return dag_test_dataframeschema()
 
 
-@pytest.fixture(name="dataframeschema_fail_dag")
-def fixture_dataframeschema_fail_dag(dataframe):
+@pytest.fixture
+def dataframeschema_fail_dag(dataframe):
     @dag(
         dag_id="dataframeschema_fail_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
@@ -84,8 +84,8 @@ def fixture_dataframeschema_fail_dag(dataframe):
     return dag_test_dataframeschema()
 
 
-@pytest.fixture(name="schemamodel_success_dag")
-def fixture_schemamodel_success_dag(dataframe):
+@pytest.fixture
+def schemamodel_success_dag(dataframe):
     @dag(
         dag_id="schema_model_success_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
@@ -114,8 +114,8 @@ def fixture_schemamodel_success_dag(dataframe):
     return dag_test_schema_model()
 
 
-@pytest.fixture(name="schemamodel_fail_dag")
-def fixture_schemamodel_fail_dag(dataframe):
+@pytest.fixture
+def schemamodel_fail_dag(dataframe):
     @dag(
         dag_id="schemamodel_fail_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),

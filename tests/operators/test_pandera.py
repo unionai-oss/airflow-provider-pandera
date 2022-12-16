@@ -7,14 +7,6 @@ from airflow.utils.types import DagRunType
 from pandas import DataFrame
 from pandera.errors import SchemaError
 
-from tests.fixtures import (
-    fixture_dataframe,
-    fixture_dataframeschema_fail_dag,
-    fixture_dataframeschema_success_dag,
-    fixture_schemamodel_fail_dag,
-    fixture_schemamodel_success_dag,
-)
-
 
 class TestPanderaOperatorDataFrameSchema:
     DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
