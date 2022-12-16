@@ -8,11 +8,11 @@ from pandas import DataFrame
 from pandera.errors import SchemaError
 
 from tests.fixtures import (
-    dataframe,
-    dataframeschema_fail_dag,
-    dataframeschema_success_dag,
-    schemamodel_fail_dag,
-    schemamodel_success_dag,
+    fixture_dataframe,
+    fixture_dataframeschema_fail_dag,
+    fixture_dataframeschema_success_dag,
+    fixture_schemamodel_fail_dag,
+    fixture_schemamodel_success_dag,
 )
 
 

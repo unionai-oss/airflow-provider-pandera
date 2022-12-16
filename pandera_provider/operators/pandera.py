@@ -21,10 +21,6 @@ class PanderaOperator(BaseOperator):
 
     `enable_xcom_pickling = True`
 
-    Methods
-    -------
-    execute(context={})
-        Executes the operator.
     """
 
     def __init__(
@@ -35,13 +31,14 @@ class PanderaOperator(BaseOperator):
         **kwargs,
     ) -> None:
         """
-        Parameters
-        ----------
-        dataframeschema: DataFrameSchema
-            A dataframeschema object to validate the dataframe
+        Args:
+            dataframeschema (Optional[DataFrameSchema], optional):
+                A DataFrameSchema object to validate the dataframe. Defaults to None.
+            schema_model (Optional[SchemaModel], optional):
+                A SchemaModel object to validate the dataframe. Defaults to None.
 
-        schema_model: SchemaModel
-            A schema model object to validate the dataframe.
+        Raises:
+            ValueError: _description_
         """
         super().__init__(*args, **kwargs)
         self.dataframeschema = dataframeschema
@@ -54,12 +51,10 @@ class PanderaOperator(BaseOperator):
 
     def execute(self, context: Dict[str, Any]) -> Any:
         """
-        Runs the operator.
+        Runs the operator
 
-        Parameters
-        ----------
-        context: dict
-            Context provided by Airflow.
+        Args:
+            context (Dict[str, Any]): Context provided by Airflow
         """
         dataframe = context["ti"].xcom_pull(key="pandera_df")
 
