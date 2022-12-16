@@ -1,7 +1,6 @@
 from typing import Any, Dict, Optional
 
 from airflow.models import BaseOperator
-from pandas import DataFrame
 from pandera import DataFrameSchema, SchemaModel
 
 
@@ -13,9 +12,9 @@ class PanderaOperator(BaseOperator):
     the SchemaModel object to the `schema_model` parameter.
 
     To use the DataFrameSchema for validating the dataframe, you need to pass
-    a dictionary containing the column mappings to the `columns` parameter.
+    the DataFrameSchema object to the `dataframeschema` parameter.
 
-    *When pushing the XCom object, it's key need to be set to 'dfs_operator_df'*
+    *When pushing the XCom object, it's key need to be set to 'pandera_df'*
 
     In order to pass non json objects via xcom you need to change the following
     setting in airflow.cfg:
@@ -30,7 +29,7 @@ class PanderaOperator(BaseOperator):
 
     def __init__(
         self,
-        columns: Optional[Dict[str, Any]] = None,
+        dataframeschema: Optional[DataFrameSchema] = None,
         schema_model: Optional[SchemaModel] = None,
         *args,
         **kwargs,
@@ -38,25 +37,20 @@ class PanderaOperator(BaseOperator):
         """
         Parameters
         ----------
-        columns: dict
-            A dictionary containing the mapping between columns and types.
+        dataframeschema: DataFrameSchema
+            A dataframeschema object to validate the dataframe
 
         schema_model: SchemaModel
             A schema model object to validate the dataframe.
         """
         super().__init__(*args, **kwargs)
-        self.columns: Optional[Dict[str, Any]] = columns
+        self.dataframeschema = dataframeschema
         self.schema_model: Optional[SchemaModel] = schema_model
 
-        if bool(self.columns) and not isinstance(self.columns, Dict):
-            raise TypeError(
-                f"Expected `self.columns` to be of type `dict` but got {type(self.columns)} instead"
+        if not (bool(self.dataframeschema) ^ bool(self.schema_model)):
+            raise ValueError(
+                "Exactly one of `dataframeschema` or `schema_model` may be specified."
             )
-
-        # If columns is specified, but it's an empty dictionary, raises ValueError.
-
-        if not (bool(self.columns) ^ bool(self.schema_model)):
-            raise ValueError("Exactly one of columns or schema_model may be specified.")
 
     def execute(self, context: Dict[str, Any]) -> Any:
         """
@@ -67,29 +61,18 @@ class PanderaOperator(BaseOperator):
         context: dict
             Context provided by Airflow.
         """
-        dataframe = context["ti"].xcom_pull(key="dfs_operator_df")
+        dataframe = context["ti"].xcom_pull(key="pandera_df")
 
         try:
             if not bool(dataframe):
-                raise ValueError("Couldn't find an XCom with key `dfs_operator_df`")
+                raise ValueError("Couldn't find an XCom with key `pandera_df`")
         except (AttributeError, ValueError):
             if dataframe.empty:
-                raise ValueError("Got an empty dataframe in XCom `df_operator_df`.")
+                raise ValueError("Got an empty dataframe in XCom `pandera_df`.")
 
-        if isinstance(dataframe, DataFrame):
-
-            schema = (
-                DataFrameSchema(columns=self.columns)
-                if self.columns
-                else self.schema_model
-                if self.schema_model
-                else None
-            )
-
-            if self.columns:
-                schema = DataFrameSchema(columns=self.columns)
-            elif self.schema_model:
-                schema = self.schema_model
-
-            results = schema.validate(dataframe)
-            return results
+        if self.dataframeschema:
+            schema = self.dataframeschema
+        elif self.schema_model:
+            schema = self.schema_model
+        results = schema.validate(dataframe)
+        return results

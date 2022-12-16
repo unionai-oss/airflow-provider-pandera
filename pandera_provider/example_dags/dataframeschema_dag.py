@@ -3,15 +3,21 @@ from datetime import datetime
 from airflow.decorators import dag
 from airflow.operators.python import PythonOperator
 from pandas import DataFrame
-from pandera import Column
+from pandera import Column, DataFrameSchema
 
 from pandera_provider.operators.pandera import PanderaOperator
 
 
 def generate_dataframe(*args, **kwargs):
     ti = kwargs["ti"]
-    df = DataFrame({"column1": ["pandera", "is", "awesome"]})
-    ti.xcom_push("dfs_operator_df", df)
+    df = DataFrame(
+        {
+            "column1": ["pandera", "is", "awesome"],
+            "column2": [1, 2, 3],
+            "column3": [0.1, 0.2, 0.3],
+        }
+    )
+    ti.xcom_push("pandera_df", df)
 
 
 @dag(
@@ -29,9 +35,13 @@ def dataframe_schema_success_dag(*args, **kwargs):
 
     validate_dataframe_task = PanderaOperator(
         task_id="validate_dataframe_task",
-        columns={
-            "column1": Column(str),
-        },
+        dataframeschema=DataFrameSchema(
+            columns={
+                "column1": Column(str),
+                "column2": Column(int),
+                "column3": Column(float),
+            }
+        ),
     )
 
     generate_dataframe_task >> validate_dataframe_task

@@ -16,7 +16,7 @@ class InputSchema(SchemaModel):
 def generate_dataframe(**kwargs):
     ti = kwargs["ti"]
     df = DataFrame({"column1": ["pandera", "is", "awesome"]})
-    ti.xcom_push("dfs_operator_df", df)
+    ti.xcom_push("pandera_df", df)
 
 
 @dag(
