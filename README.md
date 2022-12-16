@@ -18,8 +18,7 @@ There are several ways that you can use the PanderaOperator.
 
 The simplest use case is passing a dataframe object directly from a different task as an XCom to the PanderaOperator.
 
-You can provide either a `columns` dictionary with the schema to be validated by a DataFrameSchema object or you
-can provide a SchemaModel class.
+You can provide either a `DataFrameSchema` object to validate the dataframe or you can provide a SchemaModel class.
 
 Beware that in order to pass a dataframe object between tasks using XComs you need to enable the `enable_xcom_pickling`
 option in your `airflow.cfg` file.
