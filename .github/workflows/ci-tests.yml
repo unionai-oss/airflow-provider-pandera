@@ -33,7 +33,7 @@ jobs:
         uses: py-actions/flake8@v2
         with:
           ignore: "E501"
-          exclude: "venv,*eggs*"
+          exclude: "*eggs*"
 
   run-tests:
     name: Tests
