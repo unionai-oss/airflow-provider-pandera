@@ -1,73 +1,141 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from airflow.models import BaseOperator
+from pandas import DataFrame
 from pandera import DataFrameSchema, SchemaModel
+from pandera.errors import SchemaError
 
 
 class PanderaOperator(BaseOperator):
     """
     An operator for validating a DataFrame using pandera.
 
-    In order to use SchemaModel for validating the dataframe, you need to pass
-    the SchemaModel object to the `schema_model` parameter.
+    Currently there are two different ways that you can validate a dataframe
+    using the PanderaOperator.
 
-    To use the DataFrameSchema for validating the dataframe, you need to pass
-    the DataFrameSchema object to the `dataframeschema` parameter.
+    You can validate it using the DataFrameSchema object. Or you can validate
+    it using the SchemaModel object.
 
-    *When pushing the XCom object, it's key need to be set to 'pandera_df'*
+    To select which one you want to use, you need to pass it to the operator
+    via the `dataframeschema` or `schema_model` parameters.
 
-    In order to pass non json objects via xcom you need to change the following
-    setting in airflow.cfg:
+    You can pass one and only one of those parameters. If both are specified
+    the operator will raise a ValueError. Also, if none are specified, the
+    operator will raise a ValueError.
 
-    `enable_xcom_pickling = True`
+    Currently, the only way to pass a dataframe to be validated by the
+    PanderaOperator is by passing it via XCOM.
 
+    To pass a DataFrame object via XCOM, there are two things that need to be
+    done:
+
+    1 - The key value for the XCOM object needs to be `pandera_df`
+    2 - You need to set the configuration `enable_xcom_pickling=True` in the
+    airflow.cfg file.
     """
 
     def __init__(
         self,
         dataframeschema: Optional[DataFrameSchema] = None,
         schema_model: Optional[SchemaModel] = None,
+        fail_task_on_validation_failure: Optional[bool] = True,
+        return_validation_dataframe: Optional[bool] = False,
         *args,
         **kwargs,
     ) -> None:
         """
         Args:
             dataframeschema (Optional[DataFrameSchema], optional):
-                A DataFrameSchema object to validate the dataframe. Defaults to None.
+        DataFrameSchema object to be used when validating the dataframe.
+        Defaults to None.
             schema_model (Optional[SchemaModel], optional):
-                A SchemaModel object to validate the dataframe. Defaults to None.
+        The SchemaModel object to be used when validating the dataframe.
+        Defaults to None.
+            fail_task_on_validation_failure (Optional[bool], optional):
+        If this is set to true, the validation task status will be set to False
+        even if the validation fails. Defaults to True.
+            return_validation_dataframe (Optional[bool], optional):
+        If True, this will return the resulting dataframe from the validation
+        step. Defaults to False.
 
         Raises:
             ValueError: _description_
         """
         super().__init__(*args, **kwargs)
         self.dataframeschema = dataframeschema
-        self.schema_model: Optional[SchemaModel] = schema_model
+        self.schema_model = schema_model
+        self.schema = (
+            self.dataframeschema if self.dataframeschema else self.schema_model
+        )
+        self.fail_task_on_validation_failure = fail_task_on_validation_failure
+        self.return_validation_dataframe = return_validation_dataframe
 
         if not (bool(self.dataframeschema) ^ bool(self.schema_model)):
             raise ValueError(
-                "Exactly one of `dataframeschema` or `schema_model` may be specified."
+                "Exactly one of `dataframeschema` or `schema_model` may be "
+                "specified."
             )
 
-    def execute(self, context: Dict[str, Any]) -> Any:
+    def check_fail_task_on_validation_failure(
+        self, dataframe: DataFrame, error: str
+    ) -> None:
         """
-        Runs the operator
+        Checks if the `check_fail_task_on_validation_failure` flag is True. If
+        it is, it will throw a warning message if the validation step fails.
+        But it will mark the DAG as successfull if the other tasks are
+        successfull.
+
+        Args:
+            dataframe (DataFrame): Dataframe to validate.
+            error (str): The error message to be displayed.
+
+        Raises:
+            SchemaError: Pandera error when a validation fails.
+        """
+        if self.fail_task_on_validation_failure:
+            raise SchemaError(data=dataframe, message=error, schema=self.schema)
+        else:
+            self.log.warning(
+                "Validation with Pandera failed. "
+                "Continuing DAG execution because "
+                "fail_task_on_validation_failure is set to False."
+            )
+
+    def validate(self, dataframe: DataFrame) -> Tuple[DataFrame, None]:
+        """
+        Validates the dataframe
+
+        Args:
+            dataframe (DataFrame): Dataframe to be validated.
+
+        Returns:
+            Tuple[DataFrame, None]: If the validation fails, it will throw an
+        error and return None, otherwise, it returns the resulting DataFrame
+        from pandera's validate method.
+        """
+        try:
+            if self.return_validation_dataframe:
+                return self.schema.validate(dataframe)
+            else:
+                self.schema.validate(dataframe)
+        except SchemaError as e:
+            self.check_fail_task_on_validation_failure(dataframe, e)
+        except Exception as e:
+            self.check_fail_task_on_validation_failure(dataframe, e)
+
+    def execute(self, context: Dict[str, Any]) -> Tuple[DataFrame, None]:
+        """
+        Executes the operator
 
         Args:
             context (Dict[str, Any]): Context provided by Airflow
         """
         dataframe = context["ti"].xcom_pull(key="pandera_df")
 
-        try:
-            if not bool(dataframe):
-                raise ValueError("Couldn't find an XCom with key `pandera_df`")
-        except (AttributeError, ValueError):
+        if dataframe is None:
+            raise ValueError("Couldn't find an XCOM with the key `pandera_df`")
+        else:
             if dataframe.empty:
-                raise ValueError("Got an empty dataframe in XCom `pandera_df`.")
+                raise ValueError("Got an empty dataframe in XCOM `pandera_df`")
 
-        if self.dataframeschema:
-            schema = self.dataframeschema
-        elif self.schema_model:
-            schema = self.schema_model
-        results = schema.validate(dataframe)
-        return results
+        return self.validate(dataframe)

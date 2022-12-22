@@ -11,11 +11,19 @@ from pandera_provider.operators.pandera import PanderaOperator
 
 class InputSchema(SchemaModel):
     column1: Series[str]
+    column2: Series[int]
+    column3: Series[float]
 
 
 def generate_dataframe(**kwargs):
     ti = kwargs["ti"]
-    df = DataFrame({"column1": ["pandera", "is", "awesome"]})
+    df = DataFrame(
+        {
+            "column1": ["pandera", "is", "awesome"],
+            "column2": [1, 2, 3],
+            "column3": [0.1, 0.2, 0.3],
+        }
+    )
     ti.xcom_push("pandera_df", df)
 
 

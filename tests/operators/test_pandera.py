@@ -7,49 +7,101 @@ from airflow.utils.types import DagRunType
 from pandas import DataFrame
 from pandera.errors import SchemaError
 
+DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
+DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=2)
+
 
 class TestPanderaOperatorDataFrameSchema:
-    DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
-    DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=2)
-
-    def test_pandera_operator_using_dataframeschema_success(
+    def test_simple_df(
         self,
-        dataframeschema_success_dag,
+        dataframeschema_simple_df_dag,
     ):
-
-        dagrun = dataframeschema_success_dag.create_dagrun(
+        dagrun = dataframeschema_simple_df_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=self.DATA_INTERVAL_START,
-            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
-            start_date=self.DATA_INTERVAL_END,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
         tis = dagrun.get_task_instances()
 
         for ti in tis:
-            ti.task = dataframeschema_success_dag.get_task(task_id=ti.task_id)
-            ti.run(ignore_ti_state=True)
+            ti.task = dataframeschema_simple_df_dag.get_task(task_id=ti.task_id)
             if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
                 assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)
-            assert ti.state == TaskInstanceState.SUCCESS
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                ti.run(ignore_ti_state=True)
+                assert ti.state == TaskInstanceState.SUCCESS
 
-    def test_pandera_operator_using_dataframeschema_fail(
-        self, dataframeschema_fail_dag
+    def test_wrong_xcom_key(
+        self,
+        dataframeschema_wrong_xcom_key_dag,
     ):
-
-        dagrun = dataframeschema_fail_dag.create_dagrun(
+        dagrun = dataframeschema_wrong_xcom_key_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=self.DATA_INTERVAL_START,
-            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
-            start_date=self.DATA_INTERVAL_END,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
         tis = dagrun.get_task_instances()
 
         for ti in tis:
-            ti.task = dataframeschema_fail_dag.get_task(task_id=ti.task_id)
+            ti.task = dataframeschema_wrong_xcom_key_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert isinstance(ti.xcom_pull(key="wrong_key"), DataFrame)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
+    def test_empty_df(
+        self,
+        dataframeschema_empty_df_dag,
+    ):
+        dagrun = dataframeschema_empty_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        for ti in tis:
+            ti.task = dataframeschema_empty_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
+    def test_wrong_schema_df(
+        self,
+        dataframeschema_wrong_schema_df_dag,
+    ):
+        dagrun = dataframeschema_wrong_schema_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        for ti in tis:
+            ti.task = dataframeschema_wrong_schema_df_dag.get_task(task_id=ti.task_id)
             if ti.task_id == "df_generator_task":
                 ti.run(ignore_ti_state=True)
                 assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)
@@ -61,48 +113,96 @@ class TestPanderaOperatorDataFrameSchema:
 
 
 class TestPanderaOperatorSchemaModel:
-    DATA_INTERVAL_START = pendulum.datetime(2021, 9, 13, tz="UTC")
-    DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=2)
-
-    def test_pandera_operator_using_schemamodel_success(
+    def test_simple_df(
         self,
-        schemamodel_success_dag,
+        schemamodel_simple_df_dag,
     ):
-
-        dagrun = schemamodel_success_dag.create_dagrun(
+        dagrun = schemamodel_simple_df_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=self.DATA_INTERVAL_START,
-            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
-            start_date=self.DATA_INTERVAL_END,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
         tis = dagrun.get_task_instances()
 
         for ti in tis:
-            ti.task = schemamodel_success_dag.get_task(task_id=ti.task_id)
-            ti.run(ignore_ti_state=True)
+            ti.task = schemamodel_simple_df_dag.get_task(task_id=ti.task_id)
             if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
                 assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)
-            assert ti.state == TaskInstanceState.SUCCESS
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                ti.run(ignore_ti_state=True)
+                assert ti.state == TaskInstanceState.SUCCESS
 
-    def test_pandera_operator_using_schemamodel_fail(
+    def test_wrong_xcom_key(
         self,
-        schemamodel_fail_dag,
+        schemamodel_wrong_xcom_key_dag,
     ):
-
-        dagrun = schemamodel_fail_dag.create_dagrun(
+        dagrun = schemamodel_wrong_xcom_key_dag.create_dagrun(
             state=DagRunState.RUNNING,
-            execution_date=self.DATA_INTERVAL_START,
-            data_interval=(self.DATA_INTERVAL_START, self.DATA_INTERVAL_END),
-            start_date=self.DATA_INTERVAL_END,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
             run_type=DagRunType.MANUAL,
         )
 
         tis = dagrun.get_task_instances()
 
         for ti in tis:
-            ti.task = schemamodel_fail_dag.get_task(task_id=ti.task_id)
+            ti.task = schemamodel_wrong_xcom_key_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert isinstance(ti.xcom_pull(key="wrong_key"), DataFrame)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
+    def test_empty_df(
+        self,
+        schemamodel_empty_df_dag,
+    ):
+        dagrun = schemamodel_empty_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        for ti in tis:
+            ti.task = schemamodel_empty_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
+    def test_wrong_schema_df(
+        self,
+        schemamodel_wrong_schema_df_dag,
+    ):
+        dagrun = schemamodel_wrong_schema_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        for ti in tis:
+            ti.task = schemamodel_wrong_schema_df_dag.get_task(task_id=ti.task_id)
             if ti.task_id == "df_generator_task":
                 ti.run(ignore_ti_state=True)
                 assert isinstance(ti.xcom_pull(key="pandera_df"), DataFrame)

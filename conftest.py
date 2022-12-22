@@ -10,7 +10,7 @@ from pandera_provider.operators.pandera import PanderaOperator
 
 
 @pytest.fixture
-def dataframe():
+def simple_df():
     return DataFrame(
         {
             "column1": ["pandera", "is", "awesome"],
@@ -21,9 +21,45 @@ def dataframe():
 
 
 @pytest.fixture
-def dataframeschema_success_dag(dataframe):
+def wrong_schema_df():
+    return DataFrame(
+        {
+            "column1": ["pandera", "is", "awesome"],
+            "column2": [1, 2, 3],
+            "column3": [
+                "should",
+                "be",
+                "floats",
+            ],  # tests are going to check for a float type here
+        }
+    )
+
+
+@pytest.fixture
+def dataframeschema():
+    return DataFrameSchema(
+        columns={
+            "column1": Column(str),
+            "column2": Column(int),
+            "column3": Column(float),
+        }
+    )
+
+
+@pytest.fixture
+def schemamodel():
+    class Schema(SchemaModel):
+        column1: Series[str]
+        column2: Series[int]
+        column3: Series[float]
+
+    return Schema
+
+
+@pytest.fixture
+def dataframeschema_simple_df_dag(simple_df, dataframeschema):
     @dag(
-        dag_id="dataframe_schema_success_dag",
+        dag_id="dataframeschema_simple_df_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
         catchup=False,
         schedule="@daily",
@@ -32,19 +68,12 @@ def dataframeschema_success_dag(dataframe):
         df_generator_task = PythonOperator(
             task_id="df_generator_task",
             python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
-                key="pandera_df", value=dataframe
+                key="pandera_df", value=simple_df
             ),
         )
 
         validate_dataframe_task = PanderaOperator(
-            task_id="validate_dataframe_task",
-            dataframeschema=DataFrameSchema(
-                columns={
-                    "column1": Column(str),
-                    "column2": Column(int),
-                    "column3": Column(float),
-                }
-            ),
+            task_id="validate_dataframe_task", dataframeschema=dataframeschema
         )
 
         df_generator_task.set_downstream(validate_dataframe_task)
@@ -53,9 +82,9 @@ def dataframeschema_success_dag(dataframe):
 
 
 @pytest.fixture
-def dataframeschema_fail_dag(dataframe):
+def dataframeschema_wrong_xcom_key_dag(simple_df, dataframeschema):
     @dag(
-        dag_id="dataframeschema_fail_dag",
+        dag_id="dataframeschema_wrong_xcom_key_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
         catchup=False,
         schedule="@daily",
@@ -64,19 +93,12 @@ def dataframeschema_fail_dag(dataframe):
         df_generator_task = PythonOperator(
             task_id="df_generator_task",
             python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
-                key="pandera_df", value=dataframe
+                key="wrong_key", value=simple_df
             ),
         )
 
         validate_dataframe_task = PanderaOperator(
-            task_id="validate_dataframe_task",
-            dataframeschema=DataFrameSchema(
-                columns={
-                    "column1": Column(str),
-                    "column2": Column(str),
-                    "column3": Column(float),
-                }
-            ),
+            task_id="validate_dataframe_task", dataframeschema=dataframeschema
         )
 
         df_generator_task.set_downstream(validate_dataframe_task)
@@ -85,60 +107,150 @@ def dataframeschema_fail_dag(dataframe):
 
 
 @pytest.fixture
-def schemamodel_success_dag(dataframe):
+def dataframeschema_empty_df_dag(dataframeschema):
     @dag(
-        dag_id="schema_model_success_dag",
+        dag_id="dataframeschema_empty_df_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
         catchup=False,
         schedule="@daily",
     )
-    def dag_test_schema_model():
+    def dag_test_dataframeschema():
         df_generator_task = PythonOperator(
             task_id="df_generator_task",
             python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
-                key="pandera_df", value=dataframe
+                key="pandera_df", value=DataFrame()
             ),
         )
 
-        class InputSchema(SchemaModel):
-            column1: Series[str]
-            column2: Series[int]
-            column3: Series[float]
-
         validate_dataframe_task = PanderaOperator(
-            task_id="validate_dataframe_task", schema_model=InputSchema
+            task_id="validate_dataframe_task", dataframeschema=dataframeschema
         )
 
         df_generator_task.set_downstream(validate_dataframe_task)
 
-    return dag_test_schema_model()
+    return dag_test_dataframeschema()
 
 
 @pytest.fixture
-def schemamodel_fail_dag(dataframe):
+def dataframeschema_wrong_schema_df_dag(wrong_schema_df, dataframeschema):
     @dag(
-        dag_id="schemamodel_fail_dag",
+        dag_id="dataframeschema_wrong_schema_df_dag",
         start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
         catchup=False,
         schedule="@daily",
     )
-    def dag_test_schemamodel():
+    def dag_test_dataframeschema():
         df_generator_task = PythonOperator(
             task_id="df_generator_task",
             python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
-                key="pandera_df", value=dataframe
+                key="pandera_df", value=wrong_schema_df
             ),
         )
 
-        class InputSchema(SchemaModel):
-            column1: Series[str]
-            column2: Series[float]
-            column3: Series[float]
-
         validate_dataframe_task = PanderaOperator(
-            task_id="validate_dataframe_task", schema_model=InputSchema
+            task_id="validate_dataframe_task", dataframeschema=dataframeschema
         )
 
         df_generator_task.set_downstream(validate_dataframe_task)
 
-    return dag_test_schemamodel()
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_simple_df_dag(simple_df, schemamodel):
+    @dag(
+        dag_id="schemamodel_simple_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="df_generator_task",
+            python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
+                key="pandera_df", value=simple_df
+            ),
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            task_id="validate_dataframe_task", dataframeschema=schemamodel
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_wrong_xcom_key_dag(simple_df, dataframeschema):
+    @dag(
+        dag_id="schemamodel_wrong_xcom_key_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="df_generator_task",
+            python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
+                key="wrong_key", value=simple_df
+            ),
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            task_id="validate_dataframe_task", dataframeschema=dataframeschema
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_empty_df_dag(schemamodel):
+    @dag(
+        dag_id="schemamodel_empty_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="df_generator_task",
+            python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
+                key="pandera_df", value=DataFrame()
+            ),
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            task_id="validate_dataframe_task", dataframeschema=schemamodel
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_wrong_schema_df_dag(wrong_schema_df, schemamodel):
+    @dag(
+        dag_id="schemamodel_wrong_schema_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="df_generator_task",
+            python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
+                key="pandera_df", value=wrong_schema_df
+            ),
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            task_id="validate_dataframe_task", dataframeschema=schemamodel
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
