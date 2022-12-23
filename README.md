@@ -108,7 +108,7 @@ validate_dataframe_task = PanderaOperator(
 )
 ```
 
-For complete dag examples, check: [pandera_provider/example_dags](https://github.com/erichamers/airflow-provider-pandera/pandera_provider/example_dags)
+For complete dag examples, check: [pandera_provider/example_dags](https://github.com/erichamers/airflow-provider-pandera/tree/main/pandera_provider/example_dags)
 
 ## Modules
 
