@@ -1,0 +1,10 @@
+[run]
+branch = True
+omit = tests/*,pandera_provider/__init__.py
+
+[pytest]
+addopts = --cov=pandera_provider
+
+[report]
+show_missing = True
+skip_empty = True
