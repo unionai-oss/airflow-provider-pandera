@@ -28,7 +28,7 @@ def generate_dataframe(**kwargs):
 
 
 @dag(
-    dag_id="schema_model_success_dag",
+    dag_id="schema_model_xcom_dag",
     start_date=datetime(2022, 1, 1),
     catchup=False,
     schedule="0 0 * * *",

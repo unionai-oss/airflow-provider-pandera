@@ -1,4 +1,6 @@
 import datetime
+from pathlib import Path
+from tempfile import gettempdir
 
 import pendulum
 import pytest
@@ -12,6 +14,61 @@ DATA_INTERVAL_END = DATA_INTERVAL_START + datetime.timedelta(days=2)
 
 
 class TestPanderaOperatorDataFrameSchema:
+    def test_csv_simple_df(
+        self,
+        dataframeschema_csv_simple_df_dag,
+    ):
+        dagrun = dataframeschema_csv_simple_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        tmpdir = gettempdir()
+        tmp_csv_simple_df_file = Path(tmpdir, "test.csv")
+
+        for ti in tis:
+            ti.task = dataframeschema_csv_simple_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "csv_simple_df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert Path.exists(tmp_csv_simple_df_file)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                ti.run(ignore_ti_state=True)
+                assert ti.state == TaskInstanceState.SUCCESS
+
+    def test_csv_empty_df(
+        self,
+        dataframeschema_csv_empty_df_dag,
+    ):
+        dagrun = dataframeschema_csv_empty_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        tmpdir = gettempdir()
+        tmp_csv_empty_df_file = Path(tmpdir, "test.csv")
+
+        for ti in tis:
+            ti.task = dataframeschema_csv_empty_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "csv_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert Path.exists(tmp_csv_empty_df_file)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
     def test_simple_df(
         self,
         dataframeschema_simple_df_dag,
@@ -113,6 +170,61 @@ class TestPanderaOperatorDataFrameSchema:
 
 
 class TestPanderaOperatorSchemaModel:
+    def test_csv_simple_df(
+        self,
+        schemamodel_csv_simple_df_dag,
+    ):
+        dagrun = schemamodel_csv_simple_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        tmpdir = gettempdir()
+        tmp_csv_simple_df_file = Path(tmpdir, "test.csv")
+
+        for ti in tis:
+            ti.task = schemamodel_csv_simple_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "csv_simple_df_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert Path.exists(tmp_csv_simple_df_file)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                ti.run(ignore_ti_state=True)
+                assert ti.state == TaskInstanceState.SUCCESS
+
+    def test_csv_empty_df(
+        self,
+        schemamodel_csv_empty_df_dag,
+    ):
+        dagrun = schemamodel_csv_empty_df_dag.create_dagrun(
+            state=DagRunState.RUNNING,
+            execution_date=DATA_INTERVAL_START,
+            data_interval=(DATA_INTERVAL_START, DATA_INTERVAL_END),
+            start_date=DATA_INTERVAL_END,
+            run_type=DagRunType.MANUAL,
+        )
+
+        tis = dagrun.get_task_instances()
+
+        tmpdir = gettempdir()
+        tmp_csv_empty_df_file = Path(tmpdir, "test.csv")
+
+        for ti in tis:
+            ti.task = schemamodel_csv_empty_df_dag.get_task(task_id=ti.task_id)
+            if ti.task_id == "csv_generator_task":
+                ti.run(ignore_ti_state=True)
+                assert Path.exists(tmp_csv_empty_df_file)
+                assert ti.state == TaskInstanceState.SUCCESS
+            else:
+                with pytest.raises(ValueError):
+                    ti.run(ignore_ti_state=True)
+                    assert ti.state == TaskInstanceState.FAILED
+
     def test_simple_df(
         self,
         schemamodel_simple_df_dag,

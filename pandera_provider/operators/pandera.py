@@ -1,7 +1,8 @@
 from typing import Any, Dict, Optional, Tuple
 
 from airflow.models import BaseOperator
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
+from pandas.errors import EmptyDataError
 from pandera import DataFrameSchema, SchemaModel
 from pandera.errors import SchemaError
 
@@ -23,8 +24,9 @@ class PanderaOperator(BaseOperator):
     the operator will raise a ValueError. Also, if none are specified, the
     operator will raise a ValueError.
 
-    Currently, the only way to pass a dataframe to be validated by the
-    PanderaOperator is by passing it via XCOM.
+    At this point, there are two ways that you can feed a dataframe for the
+    operator to validate. Using XCOMs or giving it a file path for a local .csv
+    file.
 
     To pass a DataFrame object via XCOM, there are two things that need to be
     done:
@@ -36,6 +38,7 @@ class PanderaOperator(BaseOperator):
 
     def __init__(
         self,
+        filepath: Optional[str] = None,
         dataframeschema: Optional[DataFrameSchema] = None,
         schema_model: Optional[SchemaModel] = None,
         fail_task_on_validation_failure: Optional[bool] = True,
@@ -62,6 +65,7 @@ class PanderaOperator(BaseOperator):
             ValueError: _description_
         """
         super().__init__(*args, **kwargs)
+        self.filepath = filepath
         self.dataframeschema = dataframeschema
         self.schema_model = schema_model
         self.schema = (
@@ -130,12 +134,17 @@ class PanderaOperator(BaseOperator):
         Args:
             context (Dict[str, Any]): Context provided by Airflow
         """
-        dataframe = context["ti"].xcom_pull(key="pandera_df")
-
-        if dataframe is None:
-            raise ValueError("Couldn't find an XCOM with the key `pandera_df`")
+        if not self.filepath:
+            dataframe = context["ti"].xcom_pull(key="pandera_df")
+            if dataframe is None:
+                raise ValueError("Couldn't find an XCOM with the key `pandera_df`")
         else:
-            if dataframe.empty:
-                raise ValueError("Got an empty dataframe in XCOM `pandera_df`")
+            try:
+                dataframe = read_csv(self.filepath)
+            except EmptyDataError as e:
+                raise ValueError(e)
+
+        if dataframe.empty:
+            raise ValueError("Cannot validate an empty dataframe.")
 
         return self.validate(dataframe)
