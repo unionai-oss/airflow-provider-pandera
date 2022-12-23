@@ -28,17 +28,18 @@ class PanderaOperator(BaseOperator):
     operator to validate. Using XCOMs or giving it a file path for a local .csv
     file.
 
-    To pass a DataFrame object via XCOM, there are two things that need to be
-    done:
+    To pass a DataFrame object via XCOM, you can specify the key for the XCOM
+    you're defining via the `dataframe_xcom_key` parameter, or you can leave it
+    blank and it'll be set to the default value (pandera_df).
 
-    1 - The key value for the XCOM object needs to be `pandera_df`
-    2 - You need to set the configuration `enable_xcom_pickling=True` in the
-    airflow.cfg file.
+    One caveat when passing dataframe objects as XCOMs, is that you need to set
+    the configuration `enable_xcom_pickling=True` in the airflow.cfg file.
     """
 
     def __init__(
         self,
         filepath: Optional[str] = None,
+        dataframe_xcom_key: Optional[str] = "pandera_df",
         dataframeschema: Optional[DataFrameSchema] = None,
         schema_model: Optional[SchemaModel] = None,
         fail_task_on_validation_failure: Optional[bool] = True,
@@ -66,6 +67,7 @@ class PanderaOperator(BaseOperator):
         """
         super().__init__(*args, **kwargs)
         self.filepath = filepath
+        self.dataframe_xcom_key = dataframe_xcom_key
         self.dataframeschema = dataframeschema
         self.schema_model = schema_model
         self.schema = (
@@ -135,9 +137,11 @@ class PanderaOperator(BaseOperator):
             context (Dict[str, Any]): Context provided by Airflow
         """
         if not self.filepath:
-            dataframe = context["ti"].xcom_pull(key="pandera_df")
+            dataframe = context["ti"].xcom_pull(key=self.dataframe_xcom_key)
             if dataframe is None:
-                raise ValueError("Couldn't find an XCOM with the key `pandera_df`")
+                raise ValueError(
+                    f"Couldn't find an XCOM with the key `{self.dataframe_xcom_key}`"
+                )
         else:
             try:
                 dataframe = read_csv(self.filepath)

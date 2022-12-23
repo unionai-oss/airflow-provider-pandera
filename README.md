@@ -80,6 +80,7 @@ validate_dataframe_task = PanderaOperator(
 ### Reading data from XCOM
 ```python
 df_generator_task = PythonOperator(
+    dataframe_xcom_key="dataframe_for_pandera",
     task_id="df_generator_task",
     python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
         key="pandera_df", value=DataFrame({"col1": ["test"]}),
@@ -90,7 +91,7 @@ df_generator_task = PythonOperator(
 # def generate_dataframe(**kwargs):
 #     ti = kwargs["ti"]
 #     df = DataFrame({"col1": ["test"]})
-#     ti.xcom_push("pandera_df", df)
+#     ti.xcom_push("dataframe_for_pandera", df)
 # 
 # df_generator_task = PythonOperator(
 #     task_id="df_generator_task",
