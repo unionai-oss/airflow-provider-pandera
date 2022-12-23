@@ -1,3 +1,6 @@
+from pathlib import Path
+from tempfile import gettempdir
+
 import pendulum
 import pytest
 from airflow.decorators import dag
@@ -54,6 +57,66 @@ def schemamodel():
         column3: Series[float]
 
     return Schema
+
+
+@pytest.fixture
+def dataframeschema_csv_simple_df_dag(simple_df, dataframeschema):
+    tmpdir = gettempdir()
+    tmp_csv_file = Path(tmpdir, "test.csv")
+
+    def csv_generator_callable():
+        simple_df.to_csv(tmp_csv_file, index=False)
+
+    @dag(
+        dag_id="dataframeschema_csv_simple_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="csv_generator_task", python_callable=csv_generator_callable
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            filepath=tmp_csv_file,
+            task_id="validate_dataframe_task",
+            dataframeschema=dataframeschema,
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def dataframeschema_csv_empty_df_dag(dataframeschema):
+    tmpdir = gettempdir()
+    tmp_csv_file = Path(tmpdir, "test.csv")
+
+    def csv_generator_callable():
+        DataFrame().to_csv(tmp_csv_file, index=False)
+
+    @dag(
+        dag_id="dataframeschema_csv_empty_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="csv_generator_task", python_callable=csv_generator_callable
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            filepath=tmp_csv_file,
+            task_id="validate_dataframe_task",
+            dataframeschema=dataframeschema,
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
 
 
 @pytest.fixture
@@ -149,6 +212,66 @@ def dataframeschema_wrong_schema_df_dag(wrong_schema_df, dataframeschema):
 
         validate_dataframe_task = PanderaOperator(
             task_id="validate_dataframe_task", dataframeschema=dataframeschema
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_csv_simple_df_dag(simple_df, schemamodel):
+    tmpdir = gettempdir()
+    tmp_csv_file = Path(tmpdir, "test.csv")
+
+    def csv_generator_callable():
+        simple_df.to_csv(tmp_csv_file, index=False)
+
+    @dag(
+        dag_id="schemamodel_csv_simple_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="csv_generator_task", python_callable=csv_generator_callable
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            filepath=tmp_csv_file,
+            task_id="validate_dataframe_task",
+            dataframeschema=schemamodel,
+        )
+
+        df_generator_task.set_downstream(validate_dataframe_task)
+
+    return dag_test_dataframeschema()
+
+
+@pytest.fixture
+def schemamodel_csv_empty_df_dag(schemamodel):
+    tmpdir = gettempdir()
+    tmp_csv_file = Path(tmpdir, "test.csv")
+
+    def csv_generator_callable():
+        DataFrame().to_csv(tmp_csv_file, index=False)
+
+    @dag(
+        dag_id="schemamodel_csv_empty_df_dag",
+        start_date=pendulum.datetime(2021, 9, 13, tz="UTC"),
+        catchup=False,
+        schedule="@daily",
+    )
+    def dag_test_dataframeschema():
+        df_generator_task = PythonOperator(
+            task_id="csv_generator_task", python_callable=csv_generator_callable
+        )
+
+        validate_dataframe_task = PanderaOperator(
+            filepath=tmp_csv_file,
+            task_id="validate_dataframe_task",
+            dataframeschema=schemamodel,
         )
 
         df_generator_task.set_downstream(validate_dataframe_task)

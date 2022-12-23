@@ -21,7 +21,7 @@ def generate_dataframe(*args, **kwargs):
 
 
 @dag(
-    dag_id="dataframe_schema_success_dag",
+    dag_id="dataframe_schema_xcom_dag",
     start_date=datetime(2022, 1, 1),
     catchup=False,
     schedule="0 0 * * *",
