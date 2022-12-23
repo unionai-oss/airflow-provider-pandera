@@ -1,49 +1,146 @@
 # Apache Airflow Provider for Pandera
 
-Airflow operators that interface with [Pandera](https://github.com/unionai-oss/pandera).
+The airflow-provider-pandera is an addon package for Apache Airflow that provides
+an operator (PanderaOperator) for validating dataframes using [Pandera](https://github.com/unionai-oss/pandera).
 
 ## Installation
 
 Pre-requisites:
-    - pandera
-    - apache-airflow
+- apache-airflow
+- pandera
 
+### Pip
+To install the airflow-provider-pandera operator you can run the following command:
 ```bash
-pip install airflow-provider-pandera
+$ pip install airflow-provider-pandera
 ```
 
 ## Usage
+Currently there are some different ways that you can use the PanderaOperator for validating dataframes.
+You can use the DataSchemaModel or the SchemaModel objects.
 
-There are several ways that you can use the PanderaOperator. 
+You need to specify one of the two when using the operator. If both, or none are specified, the operator will
+raise a `ValueError` when attempting to run the task.
 
-The simplest use case is passing a dataframe object directly from a different task as an XCom to the PanderaOperator.
+### Using DataFrameSchema
 
-You can provide either a `DataFrameSchema` object to validate the dataframe or you can provide a SchemaModel class.
+```python
+from pandera_provider.operators.pandera import PanderaOperator
+from pandera import Column, DataFrameSchema
 
-Beware that in order to pass a dataframe object between tasks using XComs you need to enable the `enable_xcom_pickling`
-option in your `airflow.cfg` file.
+validate_dataframe_task = PanderaOperator(
+    task_id="validate_dataframe_task",
+    dataframeschema=DataFrameSchema(
+        columns={
+            "col1": Column(str)
+        }
+    ),
+)
+```
 
-For examples on how to use the operator, checkout `pandera_provider/sample_dags/`.
+### Using SchemaModel
+
+```python
+from pandera_provider.operators.pandera import PanderaOperator
+from pandera import SchemaModel
+from pandera.typing import Series
+
+# You can create your Schema class wherever you want in your project and import
+# it using standard Python imports or declare it directly in the DAG file.
+class Schema(SchemaModel):
+
+    col1: Series[str]
+
+validate_dataframe_task = PanderaOperator(
+    task_id="validate_dataframe_task",
+    schemamodel=Schema,
+)
+```
+
+## Passing data to the operator
+
+### Reading data from csv files
+
+```python
+from pandera_provider.operators.pandera import PanderaOperator
+from pandera import Column, DataFrameSchema
+
+
+validate_dataframe_task = PanderaOperator(
+    filepath="path/to/local/csv_file.csv",
+    task_id="validate_dataframe_task",
+    dataframeschema=DataFrameSchema(
+        columns={
+            "col1": Column(str)
+        }
+    ),
+)
+```
+
+### Reading data from XCOM
+```python
+df_generator_task = PythonOperator(
+    task_id="df_generator_task",
+    python_callable=lambda **kwargs: kwargs["ti"].xcom_push(
+        key="pandera_df", value=DataFrame({"col1": ["test"]}),
+    ),
+)
+
+# The above is equivalent to the following:
+# def generate_dataframe(**kwargs):
+#     ti = kwargs["ti"]
+#     df = DataFrame({"col1": ["test"]})
+#     ti.xcom_push("pandera_df", df)
+# 
+# df_generator_task = PythonOperator(
+#     task_id="df_generator_task",
+#     python_callable=generate_dataframe,
+# )
+
+validate_dataframe_task = PanderaOperator(
+    task_id="validate_dataframe_task",
+    dataframeschema=DataFrameSchema(
+        columns={
+            "col1": Column(str)
+        }
+    ),
+)
+```
+
+For complete dag examples, check: [pandera_provider/example_dags](https://github.com/erichamers/airflow-provider-pandera/pandera_provider/example_dags)
 
 ## Modules
 
 Currently there is only one operator, the PanderaOperator.
 `from pandera_provider.operators.pandera import PanderaOperator`
 
-Stub doc: [Here](https://www.notion.so/Design-Doc-Airflow-Pandera-Provider-a352cc3c49844a0dbacff16ba40ff079)
+[Stub doc](https://www.notion.so/Design-Doc-Airflow-Pandera-Provider-a352cc3c49844a0dbacff16ba40ff079)
 
 ## Contributing
 
 ```bash
-git clone https://github.com/unionai-oss/airflow-provider-pandera
-cd airflow-provider-pandera
-python -m venv venv
-. venv/bin/activate
-pip install -e .
-pip install -r requirements-dev.txt
+# Clone this repository
+$ git clone https://github.com/erichamers/airflow-provider-pandera
+$ cd airflow-provider-pandera
+
+# Create the virtual environment
+$ python -m venv venv
+
+# Activate the virtual environment
+$ . venv/bin/activate
+
+# Install the package
+$ pip install -e .
+
+# Install the development dependencies
+$ pip install -r requirements-dev.txt
 ```
 
 To run the tests
 ```bash
-make test
+# Run the tests using the Makefile
+$ make test
+
+# Or you can run the command directly
+$ airflow db reset -y && pytest
 ```
