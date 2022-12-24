@@ -1,6 +1,6 @@
 [run]
-branch = True
-omit = tests/*,pandera_provider/__init__.py,/usr/*
+omit = tests/*,pandera_provider/__init__.py,pandera_provider/example_dags/*,/usr/*
+source = pandera_provider/
 
 [pytest]
 addopts = --cov=pandera_provider
